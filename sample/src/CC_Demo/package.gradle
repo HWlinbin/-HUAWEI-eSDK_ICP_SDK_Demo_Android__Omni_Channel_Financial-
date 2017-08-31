@@ -1,0 +1,97 @@
+clean.dependsOn 'cleanSDKLibs'
+
+preBuild.dependsOn 'cleanSDKLibs'
+
+assemble.dependsOn ':eSDK_CC_SDK:build'
+
+ext.SDK_VERSION = "V2.1.10"
+ext.SDK_PACKAGE_NAME = "eSDK_ICP_SDK_${ext.SDK_VERSION}_Android"
+ext.DEMO_PACKAGE_NAME = "eSDK_ICP_Demo_${ext.SDK_VERSION}_Android"
+
+
+
+
+task cleanSDKLibs(type: Delete, dependsOn: ':eSDK_CC_SDK:clean') {
+
+    description 'Delete the SDK\'s lib files (.jar and .so) from the demo\'s libs directory.'
+
+    delete fileTree('libs').include('**/*')
+
+
+}
+
+
+task copySDKNativetoDemo(type: Copy, dependsOn: ':eSDK_CC_SDK:build') {
+
+    description 'Copies the SDK\'s native files (.so) to the demo\'s libs directory.'
+
+    from("${project(':eSDK_CC_SDK').projectDir}/libs/")
+    into('libs')
+    include('**/*.so')
+
+}
+
+task copySDKtoDemo(type: Copy, dependsOn: ':eSDK_CC_SDK:build') {
+
+    description 'Copies the SDK\'s lib files (.jar and .so) to the demo\'s libs directory.'
+
+    from("${project(':eSDK_CC_SDK').projectDir}/build/libs/")
+    from("${project(':eSDK_CC_SDK').projectDir}/libs/")
+
+    into('libs')
+    include('*.jar')
+    include('**/*.so')
+
+
+}
+
+
+task packageProduct(dependsOn: ['build', 'zipSDK', 'zipDemo']) {
+
+}
+
+
+task zipSDK(type: Zip) {
+    baseName = "${project.SDK_PACKAGE_NAME}"
+    destinationDir = new File("build/package/")
+    from(copySDKtoDemo) {
+        into('Android/libs')
+    }
+
+    from("${project(':eSDK_CC_SDK').projectDir}/readme.txt") {
+        into('Android')
+        include('readme.txt')
+    }
+}
+
+task zipDemo(type: Zip, dependsOn: 'copySDKtoDemo') {
+    baseName = "${project.DEMO_PACKAGE_NAME}"
+    destinationDir = new File("build/package/")
+    from(projectDir) {
+
+        into('CC_Demo')
+
+        include('libs/**/*')
+        include('src/**/*')
+        include('res/**/*')
+        include('*.properties')
+        include('AndroidManifest.xml')
+
+    }
+
+
+    from(projectDir) {
+
+        into('CC_Demo')
+        include('build.gradle')
+
+        filter { String line -> line.replace("apply from: 'package.gradle'", "") }
+        filter { String line -> line.replace("compile project(':eSDK_CC_SDK')", "") }
+
+    }
+
+
+}
+
+
+
