@@ -1,0 +1,111 @@
+/*
+ *    Copyright 2015 Huawei Technologies Co., Ltd. All rights reserved.
+ *    eSDK is licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+apply plugin: 'com.android.library'
+
+repositories {
+    mavenCentral()
+}
+
+apply from: 'quality.gradle'
+
+ext{
+
+    OPENSRC_DIR="${projectDir}/../../../../open_src/CC/Android/"
+    PLATFORM_DIR="${projectDir}/../../../../platform/CC/Android/TUP"
+    PLATFORM_DIR_SO_TUP="${projectDir}/../../../../platform/CC/Android/TUP/armeabi"
+}
+
+dependencies {
+    compile 'com.android.support:support-v4:23.1.1'
+    compile fileTree(dir: "${project.ext.OPENSRC_DIR}", include: "*.jar")
+    compile fileTree(dir: "${project.ext.PLATFORM_DIR}", include: "*.jar")
+}
+
+preBuild.dependsOn 'copySDKJars'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
+
+    lintOptions {
+        abortOnError false
+    }
+	
+		
+	dexOptions {
+        incremental true
+        javaMaxHeapSize "2g"
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+        }
+
+        // Move the tests to tests/java, tests/res, etc...
+        instrumentTest.setRoot('tests')
+
+        // Move the build types to build-types/<type>
+        // For instance, build-types/debug/java, build-types/debug/AndroidManifest.xml, ...
+        // This moves them out of them default location under src/<type>/... which would
+        // conflict with src/ being used by the main source set.
+        // Adding new build types or product flavors should be accompanied
+        // by a similar customization.
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+    android.libraryVariants.all { variant ->
+        def name = variant.buildType.name
+        if (name.equals(com.android.builder.core.BuilderConstants.DEBUG)) {
+            return
+        }
+        def task = project.tasks.create "jar${name.capitalize()}", Jar
+        task.dependsOn variant.javaCompile
+        task.from variant.javaCompile.destinationDir
+        artifacts.add('archives', task)
+    }
+}
+
+task copySDKSo(type:Copy) {
+    from("${project.ext.PLATFORM_DIR_SO_TUP}"){
+        include('*.so')
+    }
+    into('libs/armeabi')
+    outputs.upToDateWhen { false }
+}
+
+
+task copySDKJars(type:Copy, dependsOn:'copySDKSo') {
+
+
+    from("${project.ext.OPENSRC_DIR}") {
+        include('*.jar')
+    }
+
+    from("${project.ext.PLATFORM_DIR}"){
+        include('*.jar')
+    }
+
+    into('libs')
+
+    outputs.upToDateWhen { false }
+}

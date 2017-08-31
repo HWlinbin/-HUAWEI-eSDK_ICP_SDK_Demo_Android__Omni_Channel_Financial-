@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="TupCall">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../../../../platform/CC/Android/TUP/TupCall.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
